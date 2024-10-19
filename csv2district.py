@@ -28,7 +28,7 @@ def extract_district_info(input_csv):
         if district_id not in seen_districts:
             seen_districts.add(district_id)
             district_info = {
-                "District-Name": row["District"],
+                "District-Name": row["District Name"],
                 "District-Phone": row["Phone"],
                 "NCES-District-ID": district_id,
             }
