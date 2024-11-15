@@ -16,6 +16,7 @@ def extract_school_info(input_csv):
         "NCES-School-ID",
         "School-Name",
         "School-Type",
+        "NCES-District-ID",
         "District",
         "School-Level",
         "Address",
@@ -43,6 +44,7 @@ def extract_school_info(input_csv):
             "NCES-School-ID": school_id,
             "School-Name": row["School Name"],  # Adjust column name if necessary
             "School-Type": "Public",
+            "NCES-District-ID": row["NCES District ID"],
             "District": row["District"],  # Adjust column name if necessary
             "School-Level": school_level,
             "Address": address,
