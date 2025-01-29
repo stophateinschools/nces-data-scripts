@@ -1,7 +1,7 @@
 [project]
-name = "datamuck"
+name = "nces-data-tools"
 version = "0.1.0"
-description = "Add your description here"
+description = "Tools for working with downloaded NCES school data"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
