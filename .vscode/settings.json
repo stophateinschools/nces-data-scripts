@@ -1,9 +1,15 @@
 {
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
   "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.ruff": "explicit",
+      "source.fixAll": "explicit",
       "source.organizeImports": "explicit"
-    },
-    "editor.formatOnSave": true
-  }
+    }
+  },
+  "python.terminal.activateEnvironment": false,
+  "python.testing.pytestArgs": ["digger"],
+  "esbonio.server.enabled": false
 }
