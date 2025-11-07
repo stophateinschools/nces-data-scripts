@@ -3,7 +3,7 @@
 ### Get set up
 
 1. Clone this repo.
-2. Install Astral's UV on your dev machine from https://docs.astral.sh/uv/ 
+2. Install Astral's UV on your dev machine from https://docs.astral.sh/uv/
 
 ### Get public school data in CSV format
 
@@ -28,6 +28,27 @@ You can also download public school _district_ data from the NCES.
 
 Visit https://nces.ed.gov/ccd/districtsearch/ and follow the same steps as above. The same tools will work for converting the `.xls` file to CSV.
 
+We have raw downloads of district data for the following states in the `data/downloads/` folder:
+
+California
+District of Columbia
+Florida
+Georgia
+Illinois
+Indiana
+Maryland
+Massachusetts
+Michigan
+New Jersey
+New York
+North Carolina
+Oregon
+Pennsylvania
+Virginia
+Washington
+
+If you need this data (since we do not commit large files to the repo), ask Dave.
+
 ### Get private school data in CSV format
 
 You can download private school data here: https://nces.ed.gov/surveys/pss/privateschoolsearch/
@@ -36,9 +57,9 @@ As of this writing, the `nceshtml2csv.py` does not fully support the slightly di
 
 ### Geocoding schools
 
-It's useful to have exact latitude/longitude coordinates for schools. You can use the `geocode.py` script to do this. 
+It's useful to have exact latitude/longitude coordinates for schools. You can use the `geocode.py` script to do this.
 
-It takes an arbitrary `.csv` file that has the columns `"Street Address"`, `"City"`, `"State"`, and `"ZIP"` and adds two columns, `"Latitude"` and `"Longitude"`. 
+It takes an arbitrary `.csv` file that has the columns `"Street Address"`, `"City"`, `"State"`, and `"ZIP"` and adds two columns, `"Latitude"` and `"Longitude"`.
 
 The script uses the Google Maps Geocoding API, so you'll need to get an API key from Google. (Ask Josh for one.)
 
