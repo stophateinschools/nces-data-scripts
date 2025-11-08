@@ -38,16 +38,18 @@ def main():
     pass
 
 
-def get_named_span(soup: BeautifulSoup, name: str) -> Tag:
+def get_named_span(soup: BeautifulSoup, name: str) -> Tag | None:
     # Find all spans and look for the one containing the given name
     for span in soup.find_all("span"):
         if span.get_text(strip=True) == f"{name}:":
             return span
-    raise ValueError(f"Span with name '{name}' not found")
+    return None
 
 
 def get_website_url(soup: BeautifulSoup) -> str:
     span = get_named_span(soup, "Website")
+    if not span:
+        return ""
     link = span.find_next("a")
     assert isinstance(link, Tag)
     href = link.get("href", "")
@@ -90,31 +92,33 @@ class Address:
                 f"Unexpected city/state format: '{parts[1]}' with {splits}"
             )
         zip_parts = parts[2].split("–")
-        assert len(zip_parts) == 2, f"Unexpected ZIP format: {parts[2]}"
         zip_code = zip_parts[0].strip()
-        zip4 = zip_parts[1].strip()
+        zip4 = zip_parts[1].strip() if len(zip_parts) == 2 else ""
         return cls(street=street, city=city, state=state, zip=zip_code, zip4=zip4)
 
 
-def get_address_str(soup: BeautifulSoup, name: str) -> str:
-    span = get_named_span(soup, name)
-    # Collect the next span siblings for address components
+def get_mailing_address(soup: BeautifulSoup) -> Address:
+    span = get_named_span(soup, "Mailing Address")
+    assert isinstance(span, Tag)
     address_parts = []
     for sibling in span.next_siblings:
         if isinstance(sibling, Tag) and sibling.name == "span":
-            text = sibling.get_text(strip=True)
-            if text:
-                address_parts.append(text.replace("\xa0", " ").strip())
-    return ", ".join(address_parts)
-
-
-def get_mailing_address(soup: BeautifulSoup) -> Address:
-    address_str = get_address_str(soup, "Mailing Address")
+            if text := sibling.get_text(separator=" ", strip=True):
+                address_parts.append(text.replace("\xa0", " "))
+    address_str = ", ".join(address_parts)
     return Address.from_string(address_str)
 
 
 def get_physical_address(soup: BeautifulSoup) -> Address:
-    address_str = get_address_str(soup, "Physical Address")
+    span = get_named_span(soup, "Physical Address")
+    assert isinstance(span, Tag)
+    address_parts = []
+    for sibling in span.next_siblings:
+        if isinstance(sibling, Tag) and sibling.name == "a":
+            for nested_span in sibling.find_all("span"):
+                if text := nested_span.get_text(separator=", ", strip=True):
+                    address_parts.append(text.replace("\xa0", " "))
+    address_str = ", ".join(address_parts)
     return Address.from_string(address_str)
 
 
@@ -156,7 +160,6 @@ def web(input_csv: t.IO[str]):
             district[GOOD_MAILING_STATE_COLUMN] = mailing_address.state
             district[GOOD_MAILING_ZIP_COLUMN] = mailing_address.zip
             district[GOOD_MAILING_ZIP4_COLUMN] = mailing_address.zip4
-            pa_str = get_address_str(soup, "Physical Address")
             physical_address = get_physical_address(soup)
             district[GOOD_PHYSICAL_STREET_COLUMN] = physical_address.street
             district[GOOD_PHYSICAL_CITY_COLUMN] = physical_address.city
