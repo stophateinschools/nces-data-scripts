@@ -174,5 +174,22 @@ def web(input_csv: t.IO[str]):
             raise
 
 
+@main.command()
+@click.argument("input_csv", type=click.File("r", encoding="utf-8"))
+def fix_slashes(input_csv: t.IO[str]):
+    csv_reader = csv.DictReader(input_csv)
+    fieldnames = list(csv_reader.fieldnames or [])
+    csv_writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
+    csv_writer.writeheader()
+
+    for district in csv_reader:
+        website_url = district.get(WEBSITE_COLUMN, "")
+        if website_url.endswith("//"):
+            website_url = website_url[:-1]
+        district[WEBSITE_COLUMN] = website_url
+        csv_writer.writerow(district)
+        sys.stdout.flush()
+
+
 if __name__ == "__main__":
     main()

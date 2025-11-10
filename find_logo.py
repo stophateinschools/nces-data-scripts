@@ -2,6 +2,7 @@ import csv
 import sys
 import typing as t
 from io import BytesIO
+from urllib.parse import urljoin
 
 import click
 import httpx
@@ -12,17 +13,43 @@ WEBSITE_COLUMN = "Web"
 LOGO_URL_COLUMN = "Logo URL"
 
 
-def get_image_size(url: str) -> tuple[int, int]:
+@click.group()
+def main():
+    pass
+
+
+class ImageError(Exception):
+    """Custom exception for image retrieval errors."""
+
+    pass
+
+
+def get_image_size(abs_url: str) -> tuple[int, int]:
     """
     Retrieve the image from the given URL and return its dimensions (width, height).
     """
-    response = httpx.get(url, follow_redirects=True, timeout=10.0)
-    response.raise_for_status()
-    image = Image.open(BytesIO(response.content))
-    return image.size  # (width, height)
+    # Use python's built-in URL stuff to resolve relative URLs
+    try:
+        response = httpx.get(abs_url, follow_redirects=True, timeout=10.0)
+        response.raise_for_status()
+    except httpx.HTTPError as e:
+        raise ImageError(f"Error fetching image from {abs_url}: {e}")
+
+    # Is this an image mime type?
+    content_type = response.headers.get("Content-Type", "")
+    if not content_type.startswith("image/"):
+        raise ImageError(f"URL does not point to an image: {abs_url}")
+
+    try:
+        image = Image.open(BytesIO(response.content))
+        return image.size  # (width, height)
+    except Exception as e:
+        raise ImageError(f"Error processing image from {abs_url}: {e}")
 
 
-def find_logo_urls(soup: BeautifulSoup) -> t.Iterable[tuple[str, tuple[int, int]]]:
+def find_logo_urls(
+    base_url: str, soup: BeautifulSoup
+) -> t.Iterable[tuple[str, tuple[int, int]]]:
     """
     Make several attempts to find a logo image URL from the given webpage:
 
@@ -45,9 +72,10 @@ def find_logo_urls(soup: BeautifulSoup) -> t.Iterable[tuple[str, tuple[int, int]
             alt_text = alt_text.lower()
         if "logo" in alt_text or "logo" in img_url_lower or "brand" in img_url_lower:
             try:
+                img_url = urljoin(base_url, img_url)
                 size = get_image_size(img_url)
                 yield (img_url, size)
-            except httpx.HTTPError:
+            except ImageError:
                 continue
 
     # Attempt 2: Look for <link> tags with rel="icon" or rel="shortcut icon"
@@ -56,13 +84,14 @@ def find_logo_urls(soup: BeautifulSoup) -> t.Iterable[tuple[str, tuple[int, int]
         if not isinstance(icon_url, str) or not icon_url:
             continue
         try:
+            icon_url = urljoin(base_url, icon_url)
             size = get_image_size(icon_url)
             yield (icon_url, size)
-        except httpx.HTTPError:
+        except ImageError:
             continue
 
 
-def find_best_logo_url(soup: BeautifulSoup) -> str:
+def find_best_logo_url(base_url: str, soup: BeautifulSoup) -> str:
     """
     Find the best logo URL from the given webpage soup.
 
@@ -71,7 +100,7 @@ def find_best_logo_url(soup: BeautifulSoup) -> str:
     """
     best_logo_url = ""
     best_area = 0
-    for logo_url, (width, height) in find_logo_urls(soup):
+    for logo_url, (width, height) in find_logo_urls(base_url, soup):
         area = width * height
         if area > best_area:
             best_area = area
@@ -79,9 +108,9 @@ def find_best_logo_url(soup: BeautifulSoup) -> str:
     return best_logo_url
 
 
-@click.command()
+@main.command()
 @click.argument("input_csv", type=click.File("r", encoding="utf-8"))
-def find_logo(input_csv: t.IO[str]) -> None:
+def all(input_csv: t.IO[str]) -> None:
     csv_reader = csv.DictReader(input_csv)
     fieldnames = list(csv_reader.fieldnames or []) + [LOGO_URL_COLUMN]
     csv_writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
@@ -95,9 +124,27 @@ def find_logo(input_csv: t.IO[str]) -> None:
                 response = httpx.get(website_url, follow_redirects=True, timeout=10.0)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, "html.parser")
-                logo_url = find_best_logo_url(soup)
+                logo_url = find_best_logo_url(website_url, soup)
             except Exception:
                 logo_url = ""
         district[LOGO_URL_COLUMN] = logo_url
         csv_writer.writerow(district)
         sys.stdout.flush()
+
+
+@main.command()
+@click.argument("website_url")
+def one(website_url: str) -> None:
+    try:
+        response = httpx.get(website_url, follow_redirects=True, timeout=10.0)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        logo_url = find_best_logo_url(website_url, soup)
+        print(logo_url)
+    except Exception as e:
+        print(f"Error fetching logo from {website_url}: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
