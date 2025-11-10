@@ -1,3 +1,10 @@
+"""
+Extract school information from a geocoded CSV and output it as a CSV with
+columns that match the expected names for Josh's AirTable base.
+
+This is a big HACK HACK HACK but here we go.
+"""
+
 import csv
 import sys
 

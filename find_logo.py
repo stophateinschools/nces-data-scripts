@@ -1,3 +1,16 @@
+"""
+find_logo: find school district logos using a variety of heuristics.
+
+This is a big HACK HACK HACK. It could be improved in many ways.
+
+Usage:
+    uv run python find_logo.py one https://example-school-district.com
+    uv run python find_logo.py all input.csv > output.csv
+
+    # If something goes wrong partway through, you can continue:
+    uv run python find_logo.py all-continue input.csv previous_output.csv > output.csv
+"""
+
 import csv
 import sys
 import typing as t
@@ -40,7 +53,7 @@ def get_image_size(abs_url: str) -> tuple[int, int]:
             abs_url, follow_redirects=True, timeout=10.0, headers=HEADERS
         )
         response.raise_for_status()
-    except httpx.HTTPError as e:
+    except Exception as e:
         raise ImageError(f"Error fetching image from {abs_url}: {e}")
 
     # Is this an image mime type?
@@ -129,7 +142,7 @@ def find_best_logo_url_from_site(website_url: str) -> str:
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
         return find_best_logo_url(website_url, soup)
-    except httpx.HTTPError as e:
+    except Exception as e:
         print(f"Error fetching website {website_url}: {e}", file=sys.stderr)
         return ""
 
@@ -143,6 +156,38 @@ def all(input_csv: t.IO[str]) -> None:
     csv_writer.writeheader()
 
     for district in csv_reader:
+        website_url = district.get(WEBSITE_COLUMN, "")
+        logo_url = ""
+        if website_url:
+            logo_url = find_best_logo_url_from_site(website_url)
+        district[LOGO_URL_COLUMN] = logo_url
+        csv_writer.writerow(district)
+        sys.stdout.flush()
+
+
+@main.command()
+@click.argument("input_csv", type=click.File("r", encoding="utf-8"))
+@click.argument("previous_csv", type=click.File("r", encoding="utf-8"))
+def all_continue(input_csv: t.IO[str], previous_csv: t.IO[str]) -> None:
+    # The previous_csv represents a partial run of the `all` command.
+    # We read both input_csv and previous_csv in parallel, and emit
+    # previous_csv rows until they run out, at which point we continue
+    # processing input_csv.
+    previous_reader = csv.DictReader(previous_csv)
+    previous_rows = list(previous_reader)
+    csv_reader = csv.DictReader(input_csv)
+    fieldnames = list(csv_reader.fieldnames or []) + [LOGO_URL_COLUMN]
+    csv_writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
+    csv_writer.writeheader()
+    previous_index = 0
+    for district in csv_reader:
+        if previous_index < len(previous_rows):
+            # Emit from previous
+            csv_writer.writerow(previous_rows[previous_index])
+            previous_index += 1
+            sys.stdout.flush()
+            continue
+
         website_url = district.get(WEBSITE_COLUMN, "")
         logo_url = ""
         if website_url:

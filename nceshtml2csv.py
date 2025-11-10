@@ -1,3 +1,10 @@
+"""
+Converts an HTML file containing a table of public schools or districts
+to CSV and writes to stdout.
+
+See the README for usage instructions.
+"""
+
 import csv
 import sys
 

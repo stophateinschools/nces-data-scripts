@@ -1,3 +1,8 @@
+"""
+Geocode addresses in a CSV file using Google Maps Geocoding API.
+Outputs the result to stdout.
+"""
+
 import csv
 import sys
 

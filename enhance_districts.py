@@ -1,3 +1,18 @@
+"""
+Enhances a CSV file of school districts by scraping the NCES website
+for each district's website URL, mailing, and physical address, adding
+these as new columns.
+
+This is basically a big HACK HACK HACK but hey, here we go.
+
+Usage:
+    python enhance_districts.py web input.csv > output.csv
+
+    # Fixes website URLs that end with double slashes due to scraping
+    # or other weirdness:
+    python enhance_districts.py fix_slashes input.csv > output.csv
+"""
+
 import csv
 import sys
 import typing as t
