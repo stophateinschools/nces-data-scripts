@@ -12,6 +12,12 @@ from PIL import Image
 WEBSITE_COLUMN = "Web"
 LOGO_URL_COLUMN = "Logo URL"
 
+# Sigh. I hate doing this.
+ALT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.1 Safari/605.1.15 LogoFinder/0.1"
+HEADERS = {
+    "User-Agent": ALT_UA,
+}
+
 
 @click.group()
 def main():
@@ -30,7 +36,9 @@ def get_image_size(abs_url: str) -> tuple[int, int]:
     """
     # Use python's built-in URL stuff to resolve relative URLs
     try:
-        response = httpx.get(abs_url, follow_redirects=True, timeout=10.0)
+        response = httpx.get(
+            abs_url, follow_redirects=True, timeout=10.0, headers=HEADERS
+        )
         response.raise_for_status()
     except httpx.HTTPError as e:
         raise ImageError(f"Error fetching image from {abs_url}: {e}")
@@ -108,6 +116,24 @@ def find_best_logo_url(base_url: str, soup: BeautifulSoup) -> str:
     return best_logo_url
 
 
+def find_best_logo_url_from_site(website_url: str) -> str:
+    """
+    Fetch the webpage at the given URL and find the best logo URL.
+
+    Or return an empty string if none found or on error.
+    """
+    try:
+        response = httpx.get(
+            website_url, follow_redirects=True, timeout=10.0, headers=HEADERS
+        )
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        return find_best_logo_url(website_url, soup)
+    except httpx.HTTPError as e:
+        print(f"Error fetching website {website_url}: {e}", file=sys.stderr)
+        return ""
+
+
 @main.command()
 @click.argument("input_csv", type=click.File("r", encoding="utf-8"))
 def all(input_csv: t.IO[str]) -> None:
@@ -120,13 +146,7 @@ def all(input_csv: t.IO[str]) -> None:
         website_url = district.get(WEBSITE_COLUMN, "")
         logo_url = ""
         if website_url:
-            try:
-                response = httpx.get(website_url, follow_redirects=True, timeout=10.0)
-                response.raise_for_status()
-                soup = BeautifulSoup(response.text, "html.parser")
-                logo_url = find_best_logo_url(website_url, soup)
-            except Exception:
-                logo_url = ""
+            logo_url = find_best_logo_url_from_site(website_url)
         district[LOGO_URL_COLUMN] = logo_url
         csv_writer.writerow(district)
         sys.stdout.flush()
@@ -135,15 +155,11 @@ def all(input_csv: t.IO[str]) -> None:
 @main.command()
 @click.argument("website_url")
 def one(website_url: str) -> None:
-    try:
-        response = httpx.get(website_url, follow_redirects=True, timeout=10.0)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
-        logo_url = find_best_logo_url(website_url, soup)
+    logo_url = find_best_logo_url_from_site(website_url)
+    if logo_url:
         print(logo_url)
-    except Exception as e:
-        print(f"Error fetching logo from {website_url}: {e}", file=sys.stderr)
-        sys.exit(1)
+    else:
+        print("No logo found.")
 
 
 if __name__ == "__main__":
