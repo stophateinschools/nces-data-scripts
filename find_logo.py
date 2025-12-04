@@ -82,6 +82,7 @@ def find_logo_urls(
     """
     # Attempt 1: Look for <img> tags
     for img in soup.find_all("img"):
+        print("CONSIDERING IMG TAG:", img, file=sys.stderr)
         img_url = img.get("src", "")
         if not isinstance(img_url, str) or not img_url:
             continue
@@ -122,6 +123,7 @@ def find_best_logo_url(base_url: str, soup: BeautifulSoup) -> str:
     best_logo_url = ""
     best_area = 0
     for logo_url, (width, height) in find_logo_urls(base_url, soup):
+        print("CONSIDERING LOGO:", logo_url, f"({width}x{height})", file=sys.stderr)
         area = width * height
         if area > best_area:
             best_area = area
