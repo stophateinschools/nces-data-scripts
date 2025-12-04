@@ -142,6 +142,10 @@ async function mergeExistingDistricts() {
     const targetRecord = targetRecords.records.find(
       (r) => r.getCellValue(uniqueFieldName) === uniqueIdentifier
     );
+    if (!isDefined(targetRecord)) {
+      console.error(`Target record with ID '${uniqueIdentifier}' not found`);
+      throw new Error("abort");
+    }
 
     // Map values from the "NCES" table to values suitable to updating the target table.
     // Only update fields that are currently empty in the target record.
@@ -190,6 +194,14 @@ async function mergeExistingDistricts() {
     output.markdown(`**Merge Complete** — Records have been updated.`);
   }
 
+  // summarize a single record to update based on fields
+  const summarizeUpdate = (record) => {
+    const fields = Object.keys(record.fields).filter(
+      (f) => f !== uniqueFieldName
+    );
+    return `${record.fields[uniqueFieldName]} (fields: ${fields.join(", ")})`;
+  };
+
   // Table summary for clarity
   output.table([
     {
@@ -197,8 +209,8 @@ async function mergeExistingDistricts() {
       TableIdentifier: tableIdentifier,
       Count: recordsToUpdate.length,
       Sample:
-        recordsToUpdate.slice(0, 10).join(", ") +
-        (recordsToUpdate.length > 10 ? "..." : ""),
+        recordsToUpdate.slice(0, 5).map(summarizeUpdate).join(", ") +
+        (recordsToUpdate.length > 5 ? "..." : ""),
     },
   ]);
 }
