@@ -142,7 +142,7 @@ async function mergeExistingDistricts() {
     const targetRecord = targetRecords.records.find(
       (r) => r.getCellValue(uniqueFieldName) === uniqueIdentifier
     );
-    if (!isDefined(targetRecord)) {
+    if (!targetRecord) {
       console.error(`Target record with ID '${uniqueIdentifier}' not found`);
       throw new Error("abort");
     }
@@ -210,7 +210,7 @@ async function mergeExistingDistricts() {
   output.table([
     {
       Status: "Updated",
-      TableIdentifier: tableIdentifier,
+      TableIdentifier: "Districts",
       Count: recordsToUpdate.length,
       Sample:
         recordsToUpdate.slice(0, 5).map(summarizeUpdate).join(", ") +
@@ -296,14 +296,14 @@ async function copyNewDistricts() {
   output.table([
     {
       Status: "Planned to Copy",
-      TableIdentifier: tableIdentifier,
+      TableIdentifier: "Districts",
       Count: planned.length,
       Sample:
         planned.slice(0, 10).join(", ") + (planned.length > 10 ? "..." : ""),
     },
     {
       Status: "Skipped",
-      TableIdentifier: tableIdentifier,
+      TableIdentifier: "Districts",
       Count: skipped.length,
       Sample:
         skipped.slice(0, 10).join(", ") + (skipped.length > 10 ? "..." : ""),
