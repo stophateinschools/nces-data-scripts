@@ -162,6 +162,10 @@ async function mergeExistingDistricts() {
       if (isDefined(sourceValue) && !isDefined(targetValue)) {
         const mappedValue = mapCellValue(sourceValue);
         updatedFields[fieldName] = mappedValue;
+      } else if (isDefined(targetValue) && fieldName === "Data-Source-Date") {
+        // Special case: update Data-Source-Date even if it exists by
+        // appending ", NCES-November-2025"
+        updatedFields[fieldName] = targetValue + ", NCES-November-2025";
       }
     }
 
