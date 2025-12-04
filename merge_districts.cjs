@@ -129,6 +129,7 @@ async function mergeExistingDistricts() {
   );
 
   let recordsToUpdate = [];
+  let recordsUpdated = [];
 
   for (const record of sourceRecords.records) {
     const uniqueIdentifier = record.getCellValue(uniqueFieldName);
@@ -181,6 +182,7 @@ async function mergeExistingDistricts() {
       // Batch every 50
       if (!dryRun && recordsToUpdate.length === 50) {
         await safeBatchUpdate(targetTable, recordsToUpdate);
+        recordsUpdated.push(...recordsToUpdate);
         recordsToUpdate = [];
       }
     }
@@ -189,6 +191,7 @@ async function mergeExistingDistricts() {
   // Process remaining batch, if any
   if (!dryRun && recordsToUpdate.length > 0) {
     await safeBatchUpdate(targetTable, recordsToUpdate);
+    recordsUpdated.push(...recordsToUpdate);
   }
 
   // Output a summary of what happened
@@ -211,10 +214,10 @@ async function mergeExistingDistricts() {
     {
       Status: "Updated",
       TableIdentifier: "Districts",
-      Count: recordsToUpdate.length,
+      Count: recordsUpdated.length,
       Sample:
-        recordsToUpdate.slice(0, 5).map(summarizeUpdate).join(", ") +
-        (recordsToUpdate.length > 5 ? "..." : ""),
+        recordsUpdated.slice(0, 5).map(summarizeUpdate).join(", ") +
+        (recordsUpdated.length > 5 ? "..." : ""),
     },
   ]);
 }
